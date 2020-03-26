@@ -1,16 +1,24 @@
 package custom.view;
 
 import android.content.Context;
-import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.AttributeSet;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Created by ehsan jelodar on 7/13/16 AD.
+ */
 
 public class UIJustifiedLabel extends android.support.v7.widget.AppCompatTextView {
 
+
     private final static String SYSTEM_NEWLINE = "\n";
+    private final static char SYSTEM_NEWLINE_CHAR = '\n';
+    private final static char SPACE_CHAR = ' ';
     private boolean isJustChangeString  = false;
     private String tmpString;
+
 
     public UIJustifiedLabel(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
@@ -25,6 +33,7 @@ public class UIJustifiedLabel extends android.support.v7.widget.AppCompatTextVie
     }
 
 
+
     @Override
     public void setText(CharSequence text, BufferType type) {
         if(!isJustChangeString)
@@ -33,6 +42,7 @@ public class UIJustifiedLabel extends android.support.v7.widget.AppCompatTextVie
         }
         super.setText(text, type);
     }
+
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -59,15 +69,21 @@ public class UIJustifiedLabel extends android.support.v7.widget.AppCompatTextVie
         }
 
     }
+    
 
     private String justifyText(String text)
     {
+
+
         Paint paint =  new Paint();
+
         //==   paint.setColor(getCurrentTextColor());
         paint.setTypeface(getTypeface());
         paint.setTextSize(getTextSize());
+        //==   paint.setTextAlign(text_align);
+        //== paint.setFlags(Paint.ANTI_ALIAS_FLAG);
 
-        // minus out the padding pixel
+
         float dirtyRegionWidth = getWidth() - getPaddingLeft() - getPaddingRight();
         if(dirtyRegionWidth < 0)// opt when error occur
         {
@@ -75,101 +91,127 @@ public class UIJustifiedLabel extends android.support.v7.widget.AppCompatTextVie
         }
         int maxLines = getMaxLines();
 
-        int lines = 1;
-        String[] blocks = text.split("((?<=\n)|(?=\n))");
-        // fix
+        String[] blocks = text.split(SYSTEM_NEWLINE);
         float spaceOffset = paint.measureText(" ");
+        List<String> lines = new ArrayList<>();
 
-        StringBuilder smb = new StringBuilder();
-        for (int i = 0; i < blocks.length && (lines <= maxLines); i++)
+        ///////
+        int block_index = 0;
+        int block_len = blocks.length;
+        for(String block : blocks)// create lines
         {
-
-            String block = blocks[i];
-
+            block_index++;
             if (block.isEmpty()) {
                 continue;
-            } else if (block.equals(SYSTEM_NEWLINE)) {
-                smb.append(block);
+            }
+
+            String line_text = block;
+            while (true)
+            {
+                String wrappedLine = createWrappedLine(line_text, paint, spaceOffset, dirtyRegionWidth);
+
+                line_text = line_text.substring(wrappedLine.length());
+     
+                if(line_text.isEmpty())// end of block
+                {
+                    if(block_index != block_len)// prevent add last \n
+                    {
+                        wrappedLine += SYSTEM_NEWLINE;
+                    }
+                    lines.add(wrappedLine);
+                    break;
+                }
+                lines.add(wrappedLine);
+            }
+
+        }
+
+        StringBuilder smb = new StringBuilder();
+        int line_len = lines.size();
+        int line_index = 0;
+        boolean is_restrict_line = false;
+        for(String line_txt : lines)
+        {
+            line_index++;
+
+            if(line_txt.isEmpty())
+            {
                 continue;
             }
 
-
-            Object[] wrappedObj = createWrappedLine(block, paint, spaceOffset, dirtyRegionWidth);
-
-            String wrappedLine = ((String) wrappedObj[0]);
-            float wrappedEdgeSpace = (Float) wrappedObj[1];
-            String[] lineAsWords = wrappedLine.split(" ");
-            int spacesToSpread = (int) (wrappedEdgeSpace != Float.MIN_VALUE ? wrappedEdgeSpace / spaceOffset : 0);
-
-            for (int j = 0; j < lineAsWords.length; j++)
+            char last_char = line_txt.charAt(line_txt.length() - 1);
+            if(line_index == line_len || (last_char == SYSTEM_NEWLINE_CHAR))// prevent add space at original text in last line or, when new line char exist on text.
             {
-                String word = lineAsWords[j];
-                if (lines == maxLines && j == (lineAsWords.length - 1))
-                {
-                    smb.append("...");//end of text
-                    continue;// or break
-                }
-                else
-                {
-                    smb.append(word).append(" ");
-                }
-
-                if (--spacesToSpread > 0) {
-                    smb.append(" ");
-                }
+                smb.append(line_txt);
             }
-
-            lines++;
-
-            smb = new StringBuilder(smb.toString()); // may opt // smb.toString().trim()
-
-
-            if (!blocks[i].isEmpty())
+            else // append blank space to text.
             {
-                if(lineAsWords.length > 2)// prevent lock on loop
+                StringBuilder s_tmp = new StringBuilder(line_txt);
+                int index = -1;
+                while (paint.measureText(line_txt) < dirtyRegionWidth)
                 {
-                    blocks[i] = blocks[i].substring(wrappedLine.length());
-
-                    if (!blocks[i].isEmpty())
+                    index = line_txt.indexOf(SPACE_CHAR, index + 2);// 2 for after of this and after of append space
+                    if(index >= line_txt.lastIndexOf(SPACE_CHAR))
                     {
-                        smb.append(SYSTEM_NEWLINE);
+                        index = -1;
                     }
-                    i--;
+                    else
+                    {
+                        if(index != -1)
+                        {
+                            s_tmp.insert(index, ' ');
+                            line_txt = s_tmp.toString();
+                        }
+                    }
                 }
-                else
-                {
-                    smb.append(blocks[i]);
-                }
+                smb.append(line_txt);
             }
+
+
+            if (line_index == maxLines)//end of text
+            {
+                is_restrict_line = true;
+                break;
+            }
+
+        }
+
+        if(is_restrict_line)
+        {
+            String txt = smb.toString();
+            txt = txt.replace(txt.substring(txt.length() - 3), "...");
+            return txt;
         }
         return smb.toString();
+
     }
 
 
 
-    private static Object[] createWrappedLine(String block, Paint paint, float spaceOffset, float maxWidth) {
-        float cacheWidth;
-        float origMaxWidth = maxWidth;
-
+    private static String createWrappedLine(String block, Paint paint, float spaceOffset, float maxWidth)
+    {
+        float cacheWidth = 0;
         StringBuilder line = new StringBuilder();
 
-        for (String word : block.split("\\s")) {
-            cacheWidth = paint.measureText(word);
-            maxWidth -= cacheWidth;
+        String[] words = block.split("\\s+");
+        if(words.length > 1)// prevent lock on loop when space not exist on text.
+        {
+            for (String word : words)//or "\\s"
+            {
+                cacheWidth += paint.measureText(word);
 
-            if (maxWidth <= 0) {
-                return new Object[] {line.toString(), maxWidth + cacheWidth + spaceOffset };
+                if (cacheWidth > maxWidth) {
+                    return line.toString();
+                }
+
+                cacheWidth += spaceOffset;
+                line.append(word).append(SPACE_CHAR);
             }
-
-            line.append(word).append(" ");
-            maxWidth -= spaceOffset;
         }
-
-        if (paint.measureText(block) <= origMaxWidth) {
-            return new Object[] { block, Float.MIN_VALUE };
-        }
-
-        return new Object[] {line.toString(), maxWidth };
+        return block;
     }
+    
 
 }
+
+
