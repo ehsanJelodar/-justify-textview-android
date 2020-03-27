@@ -3,14 +3,14 @@
  
  this source is modified version of :  https://github.com/nikoo28/justify-textview-android
  
-original text :
+## original text :
 
 ![original](screenshot/original.jpg)
 
-justify text :
+## justify text :
 
 ![justify](screenshot/justify.jpg)
 
-persian text :
+## persian text :
 
 ![persian justify](screenshot/persian.jpg)
