@@ -2,8 +2,9 @@
  This is a simple implementation to get text in justified manner in any android application, also support LTR and RTL language.
  
  Simply use : 
+ just add this file to your project
 ```xml
-        <yourpackagename.UIJustifiedLabel              
+        <custom.view.UIJustifiedLabel              
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/lorum_ipsum" />
