@@ -5,12 +5,12 @@
  
 original text :
 
-![original](original.jpg)
+![original](screenshot/original.jpg)
 
 justify text :
 
-![justify](justify.jpg)
+![justify](screenshot/justify.jpg)
 
 persian text :
 
-![persian justify](persian.jpg)
+![persian justify](screenshot/persian.jpg)
